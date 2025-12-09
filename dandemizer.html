@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>1st Player Dandemizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            font-family: 'Nunito', sans-serif;
+            -webkit-overflow-scrolling: none;
+            overscroll-behavior: none;
+        }
+
+        /* Background Photo - Always Visible */
+        .background-photo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Dark Overlay - Fades in when touching */
+        .touch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .touch-overlay.active {
+            opacity: 1;
+        }
+
+        /* Title Bar */
+        .title-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px 10px;
+            padding-top: max(40px, env(safe-area-inset-top));
+            z-index: 10;
+            text-align: center;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .title-bar.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .title-image {
+            width: min(96%, 520px);
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Instruction Bar */
+        .instruction-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px 10px;
+            padding-bottom: max(40px, env(safe-area-inset-bottom));
+            z-index: 10;
+            text-align: center;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .instruction-bar.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .instruction-image {
+            width: min(96%, 520px);
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            animation: instructionPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes instructionPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(2px 2px 0px #8b6914) 
+                        drop-shadow(3px 3px 0px #6b5210)
+                        drop-shadow(4px 4px 6px rgba(0,0,0,0.5));
+            }
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(2px 2px 0px #8b6914) 
+                        drop-shadow(3px 3px 0px #6b5210)
+                        drop-shadow(4px 4px 6px rgba(0,0,0,0.5))
+                        drop-shadow(0 0 20px rgba(255,215,0,0.6));
+            }
+        }
+
+        /* Settings Button */
+        .settings-btn {
+            position: fixed;
+            top: max(8px, env(safe-area-inset-top));
+            right: 8px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .settings-btn:active {
+            transform: scale(0.95);
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .settings-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 350px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .modal-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .modal-option:active {
+            transform: scale(0.98);
+        }
+
+        .modal-option.selected {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+        }
+
+        .option-title {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .option-desc {
+            display: block;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .modal-close {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+            border: none;
+            border-radius: 12px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .modal-close:active {
+            transform: scale(0.98);
+        }
+
+        /* Touch Area - covers entire screen including over UI */
+        .touch-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+        }
+
+        /* Touch Circles - Ring Style */
+        .touch-circle {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            margin-left: -50px;
+            margin-top: -50px;
+            pointer-events: none;
+        }
+
+        .touch-circle .pulse-wrapper {
+            width: 100%;
+            height: 100%;
+            animation: circlePulse var(--pulse-speed, 1.2s) ease-in-out infinite;
+        }
+
+        .touch-circle .outer-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid currentColor;
+            opacity: 0.8;
+            animation: rotateRing var(--rotate-speed, 3s) linear infinite;
+            box-shadow: 
+                0 0 20px currentColor,
+                0 0 40px currentColor,
+                inset 0 0 15px currentColor;
+        }
+
+        .touch-circle .inner-ring {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: calc(100% - 30px);
+            height: calc(100% - 30px);
+            border-radius: 50%;
+            border: 3px solid currentColor;
+            animation: rotateRingReverse var(--rotate-speed-inner, 2s) linear infinite;
+            box-shadow: 
+                0 0 15px currentColor,
+                0 0 30px currentColor,
+                inset 0 0 10px currentColor;
+        }
+
+        /* Ring rotation */
+        @keyframes rotateRing {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rotateRingReverse {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        /* Pulsing on the wrapper */
+        @keyframes circlePulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 0.85;
+            }
+            50% { 
+                transform: scale(var(--pulse-scale, 1.08));
+                opacity: 1;
+            }
+        }
+
+        /* Winner state */
+        .touch-circle.winner {
+            width: 130px;
+            height: 130px;
+            margin-left: -65px;
+            margin-top: -65px;
+        }
+
+        .touch-circle.winner .pulse-wrapper {
+            animation: circlePulse 0.5s ease-in-out infinite;
+            --pulse-scale: 1.2;
+        }
+
+        .touch-circle.winner .outer-ring {
+            animation: rotateRing 1.5s linear infinite;
+            border-width: 5px;
+            box-shadow: 
+                0 0 30px currentColor,
+                0 0 60px currentColor,
+                inset 0 0 20px currentColor;
+        }
+
+        .touch-circle.winner .inner-ring {
+            top: 18px;
+            left: 18px;
+            width: calc(100% - 36px);
+            height: calc(100% - 36px);
+            animation: rotateRingReverse 1s linear infinite;
+            border-width: 4px;
+        }
+
+        /* Color classes */
+        .touch-circle.color-blue { color: #00bfff; }
+        .touch-circle.color-red { color: #ff4757; }
+        .touch-circle.color-green { color: #2ed573; }
+        .touch-circle.color-gold { color: #ffd700; }
+        .touch-circle.color-purple { color: #a855f7; }
+        .touch-circle.color-orange { color: #ff9f43; }
+        .touch-circle.color-cyan { color: #00d9ff; }
+        .touch-circle.color-pink { color: #ff6b9d; }
+
+        /* Countdown Timer */
+        .countdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(6rem, 25vw, 12rem);
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+            z-index: 15;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .countdown.show {
+            opacity: 1;
+        }
+
+        .countdown.pulse {
+            animation: countdownPulse 0.3s ease-out;
+        }
+
+        @keyframes countdownPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Photo - Always Visible -->
+    <img src="dan.jpg" alt="Dan" class="background-photo">
+
+    <!-- Dark Overlay - Fades in during touch -->
+    <div class="touch-overlay" id="touch-overlay"></div>
+
+    <!-- Title Bar -->
+    <div class="title-bar" id="title-bar">
+        <img src="title.png" alt="First Player Dandemizer" class="title-image">
+    </div>
+
+    <!-- Instruction Bar -->
+    <div class="instruction-bar" id="instruction-bar">
+        <img src="instruction.png" alt="Touch to start" class="instruction-image">
+    </div>
+
+    <!-- Settings Button -->
+    <button class="settings-btn" id="settings-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h2 class="modal-title">Player Mode</h2>
+            <div class="modal-options">
+                <button class="modal-option selected" id="option-5" data-mode="5">
+                    <span class="option-title">Up to 5 Players</span>
+                    <span class="option-desc">Everyone touches at once</span>
+                </button>
+                <button class="modal-option" id="option-10" data-mode="10">
+                    <span class="option-title">More than 5 Players</span>
+                    <span class="option-desc">Tap one at a time</span>
+                </button>
+            </div>
+            <button class="modal-close" id="modal-close">Done</button>
+        </div>
+    </div>
+
+    <!-- Touch Area -->
+    <div class="touch-area" id="touch-area"></div>
+
+    <!-- Countdown Timer -->
+    <div class="countdown" id="countdown">3</div>
+
+    <script>
+        // Elements
+        const touchOverlay = document.getElementById('touch-overlay');
+        const titleBar = document.getElementById('title-bar');
+        const instructionBar = document.getElementById('instruction-bar');
+        const touchArea = document.getElementById('touch-area');
+        const countdown = document.getElementById('countdown');
+        const settingsBtn = document.getElementById('settings-btn');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const option5 = document.getElementById('option-5');
+        const option10 = document.getElementById('option-10');
+        const modalClose = document.getElementById('modal-close');
+
+        // Available colors for circles
+        const circleColors = [
+            'color-blue',
+            'color-red', 
+            'color-green',
+            'color-gold',
+            'color-purple',
+            'color-orange',
+            'color-cyan',
+            'color-pink'
+        ];
+        let colorIndex = 0;
+
+        // State
+        let touches = new Map();
+        let circles = new Map();
+        let waitTimer = null;
+        let countdownTimer = null;
+        let countdownValue = 3;
+        let isSelecting = false;
+        let hasWinner = false;
+        let playerMode = '5'; // '5' or '10'
+
+        const WAIT_TIME = 3000; // 3 seconds after last touch change
+        const FAST_PULSE_TIME = 1500; // 1.5 seconds of fast pulsing before selection
+
+        // Settings modal handlers
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modalOverlay.classList.add('show');
+        });
+
+        settingsBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            modalOverlay.classList.add('show');
+        });
+
+        modalClose.addEventListener('click', () => {
+            modalOverlay.classList.remove('show');
+        });
+
+        modalClose.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            modalOverlay.classList.remove('show');
+        });
+
+        option5.addEventListener('click', () => selectMode('5'));
+        option5.addEventListener('touchend', (e) => { e.preventDefault(); selectMode('5'); });
+        option10.addEventListener('click', () => selectMode('10'));
+        option10.addEventListener('touchend', (e) => { e.preventDefault(); selectMode('10'); });
+
+        function selectMode(mode) {
+            playerMode = mode;
+            option5.classList.toggle('selected', mode === '5');
+            option10.classList.toggle('selected', mode === '10');
+        }
+
+        // Prevent default touch behaviors globally
+        document.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('touchcancel', (e) => e.preventDefault(), { passive: false });
+        
+        // Prevent gestures
+        document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+        // Touch handling
+        touchArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+        touchArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+        touchArea.addEventListener('touchend', handleTouchEnd, { passive: false });
+        touchArea.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+
+        function handleTouchCancel(e) {
+            // Mass cancel (likely 6th finger) - reset immediately (only matters in 5-player mode)
+            if (playerMode === '5') {
+                reset();
+            }
+        }
+
+        function handleTouchStart(e) {
+            if (hasWinner) return;
+            
+            // Don't process if modal is open
+            if (modalOverlay.classList.contains('show')) return;
+
+            // Reset countdown if a new finger is added during selection (do this first)
+            if (isSelecting) {
+                isSelecting = false;
+                clearTimeout(waitTimer);
+                clearInterval(countdownTimer);
+                countdown.classList.remove('show');
+                // Reset circle animation speeds
+                circles.forEach(circle => {
+                    circle.style.setProperty('--pulse-speed', '1200ms');
+                    circle.style.setProperty('--rotate-speed', '3000ms');
+                    circle.style.setProperty('--rotate-speed-inner', '2000ms');
+                    circle.style.setProperty('--pulse-scale', '1.05');
+                });
+            }
+
+            if (playerMode === '5') {
+                // Original multi-touch mode
+                for (let touch of e.touches) {
+                    if (!touches.has(touch.identifier)) {
+                        touches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+                        createCircle(touch.identifier, touch.clientX, touch.clientY);
+                    }
+                }
+            } else {
+                // Tap one at a time mode - only register first touch of each tap
+                if (e.changedTouches.length > 0 && circles.size < 10) {
+                    const touch = e.changedTouches[0];
+                    // Use a unique ID based on circle count to avoid conflicts
+                    const circleId = 'tap-' + circles.size;
+                    createCircle(circleId, touch.clientX, touch.clientY);
+                    // Add to touches map for tracking
+                    touches.set(circleId, { x: touch.clientX, y: touch.clientY });
+                }
+            }
+
+            // Show overlay and hide UI bars when touching
+            if (circles.size > 0) {
+                touchOverlay.classList.add('active');
+                titleBar.classList.add('hidden');
+                instructionBar.classList.add('hidden');
+                settingsBtn.classList.add('hidden');
+            }
+
+            resetWaitTimer();
+        }
+
+        function handleTouchMove(e) {
+            if (hasWinner) return;
+            
+            // Only track movement in 5-player mode
+            if (playerMode === '5') {
+                for (let touch of e.touches) {
+                    if (touches.has(touch.identifier)) {
+                        touches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+                        updateCircle(touch.identifier, touch.clientX, touch.clientY);
+                    }
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            // In 10-player mode, don't remove circles on touch end
+            if (playerMode === '10') {
+                // Just check if winner's circle needs handling
+                if (hasWinner) {
+                    // Find winner circle and handle removal
+                    circles.forEach((circle, id) => {
+                        if (circle.classList.contains('winner')) {
+                            setTimeout(() => {
+                                circle.remove();
+                                circles.delete(id);
+                                touches.delete(id);
+                                reset();
+                            }, 1000);
+                        }
+                    });
+                }
+                return;
+            }
+            
+            // 5-player mode - original behavior
+            for (let touch of e.changedTouches) {
+                const circle = circles.get(touch.identifier);
+                const wasWinnerTouch = hasWinner && circle && circle.classList.contains('winner');
+                
+                touches.delete(touch.identifier);
+                
+                // If winner's finger was removed, wait 1 second then reset
+                if (wasWinnerTouch) {
+                    setTimeout(() => {
+                        circle.remove();
+                        circles.delete(touch.identifier);
+                        reset();
+                    }, 1000);
+                    return;
+                }
+                
+                removeCircle(touch.identifier);
+            }
+
+            // Hide overlay and show UI bars when no touches (and no winner)
+            if (touches.size === 0 && !isSelecting && !hasWinner) {
+                touchOverlay.classList.remove('active');
+                titleBar.classList.remove('hidden');
+                instructionBar.classList.remove('hidden');
+                settingsBtn.classList.remove('hidden');
+                countdown.classList.remove('show');
+                clearTimeout(waitTimer);
+                clearInterval(countdownTimer);
+            } else if (!hasWinner) {
+                resetWaitTimer();
+            }
+        }
+
+        function createCircle(id, x, y) {
+            const circle = document.createElement('div');
+            circle.className = 'touch-circle ' + circleColors[colorIndex % circleColors.length];
+            colorIndex++;
+            
+            circle.innerHTML = `
+                <div class="pulse-wrapper">
+                    <div class="outer-ring"></div>
+                    <div class="inner-ring"></div>
+                </div>
+            `;
+            
+            circle.style.left = x + 'px';
+            circle.style.top = y + 'px';
+            circle.dataset.id = id;
+            touchArea.appendChild(circle);
+            circles.set(id, circle);
+        }
+
+        function updateCircle(id, x, y) {
+            const circle = circles.get(id);
+            if (circle) {
+                circle.style.left = x + 'px';
+                circle.style.top = y + 'px';
+            }
+        }
+
+        function removeCircle(id) {
+            const circle = circles.get(id);
+            if (circle) {
+                circle.remove();
+                circles.delete(id);
+            }
+        }
+
+        function resetWaitTimer() {
+            if (isSelecting || hasWinner) return;
+            
+            clearTimeout(waitTimer);
+            clearInterval(countdownTimer);
+            countdown.classList.remove('show');
+            countdownValue = 3;
+            
+            // Only start timer if we have at least 2 touches
+            if (touches.size >= 2) {
+                waitTimer = setTimeout(startCountdown, 500);
+            }
+        }
+
+        function startCountdown() {
+            if (touches.size < 2 || isSelecting || hasWinner) return;
+            
+            isSelecting = true;
+            countdownValue = 3;
+            countdown.textContent = countdownValue;
+            countdown.classList.add('show');
+            countdown.classList.add('pulse');
+            setTimeout(() => countdown.classList.remove('pulse'), 300);
+            
+            // Start the smooth pulsating acceleration over 3 seconds
+            const duration = 3000;
+            const startTime = performance.now();
+            
+            const startPulseSpeed = 1200;
+            const endPulseSpeed = 500;
+            const startRotateSpeed = 3000;
+            const endRotateSpeed = 800;
+            const startScale = 1.05;
+            const endScale = 1.12;
+
+            function easeInOutSine(t) {
+                return -(Math.cos(Math.PI * t) - 1) / 2;
+            }
+
+            function animatePulse(currentTime) {
+                if (!isSelecting) return;
+                
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = easeInOutSine(progress);
+
+                const pulseSpeed = startPulseSpeed - (startPulseSpeed - endPulseSpeed) * eased;
+                const rotateSpeed = startRotateSpeed - (startRotateSpeed - endRotateSpeed) * eased;
+                const scale = startScale + (endScale - startScale) * eased;
+
+                circles.forEach(circle => {
+                    circle.style.setProperty('--pulse-speed', pulseSpeed + 'ms');
+                    circle.style.setProperty('--rotate-speed', rotateSpeed + 'ms');
+                    circle.style.setProperty('--rotate-speed-inner', (rotateSpeed * 0.7) + 'ms');
+                    circle.style.setProperty('--pulse-scale', scale);
+                });
+
+                if (progress < 1) {
+                    requestAnimationFrame(animatePulse);
+                }
+            }
+
+            requestAnimationFrame(animatePulse);
+            
+            countdownTimer = setInterval(() => {
+                countdownValue--;
+                
+                if (countdownValue > 0) {
+                    countdown.textContent = countdownValue;
+                    countdown.classList.add('pulse');
+                    setTimeout(() => countdown.classList.remove('pulse'), 300);
+                } else {
+                    clearInterval(countdownTimer);
+                    countdown.classList.remove('show');
+                    selectWinner();
+                }
+            }, 1000);
+        }
+
+        function selectWinner() {
+            // Get IDs to pick from - use circles for 10-player mode, touches for 5-player
+            const ids = playerMode === '10' 
+                ? Array.from(circles.keys())
+                : Array.from(touches.keys());
+            
+            if (ids.length === 0) {
+                reset();
+                return;
+            }
+
+            // Pick random winner
+            const winnerId = ids[Math.floor(Math.random() * ids.length)];
+            
+            hasWinner = true;
+
+            // Remove all circles except winner
+            circles.forEach((circle, id) => {
+                if (id !== winnerId) {
+                    circle.style.transition = 'opacity 0.3s ease';
+                    circle.style.opacity = '0';
+                    setTimeout(() => circle.remove(), 300);
+                    circles.delete(id);
+                } else {
+                    circle.classList.add('winner');
+                }
+            });
+            
+            // In 10-player mode, auto-reset after showing winner
+            if (playerMode === '10') {
+                setTimeout(reset, 2000);
+            }
+        }
+
+        function reset() {
+            // Clear all state
+            touches.clear();
+            circles.forEach(circle => circle.remove());
+            circles.clear();
+            clearTimeout(waitTimer);
+            clearInterval(countdownTimer);
+            isSelecting = false;
+            hasWinner = false;
+            colorIndex = 0;
+            countdownValue = 3;
+
+            // Reset UI
+            touchOverlay.classList.remove('active');
+            titleBar.classList.remove('hidden');
+            instructionBar.classList.remove('hidden');
+            settingsBtn.classList.remove('hidden');
+            countdown.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
